@@ -1,0 +1,15 @@
+{
+  "name": "mansa",
+  "version": "1.0.0",
+  "description": "Mansa reads AgileCliffs signals and trades them on your behalf",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vahid Al @thevahidal",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.27.2",
+    "toad-scheduler": "^1.6.1"
+  }
+}
