@@ -2,14 +2,29 @@
   "name": "mansa",
   "version": "1.0.0",
   "description": "Mansa reads AgileCliffs signals and trades them on your behalf",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "npx tsc",
+    "start": "node dist/index.js",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\"",
+    "lint": "eslint . --ext .ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Vahid Al @thevahidal",
   "license": "ISC",
   "dependencies": {
     "axios": "^0.27.2",
+    "cyclic-dynamodb": "^0.0.27",
+    "dotenv": "^16.0.1",
     "toad-scheduler": "^1.6.1"
+  },
+  "devDependencies": {
+    "@tsconfig/node16": "^1.0.3",
+    "@types/node": "^18.6.2",
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "concurrently": "^7.3.0",
+    "nodemon": "^2.0.19",
+    "typescript": "^4.7.4"
   }
 }

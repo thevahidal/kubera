@@ -1,9 +1,17 @@
-const axios = require('axios');
-const {
+import axios, { AxiosError, AxiosResponse } from "axios";
+import dotenv from 'dotenv';
+import {
   ToadScheduler,
   SimpleIntervalJob,
   AsyncTask,
-} = require('toad-scheduler');
+} from 'toad-scheduler';
+import CyclicDb from 'cyclic-dynamodb';
+
+dotenv.config();
+
+const db = CyclicDb(process.env.CYCLIC_DB);
+
+let signalsCollection = db.collection('signals');
 
 const scheduler = new ToadScheduler();
 
@@ -12,10 +20,20 @@ const task = new AsyncTask(
   () => {
     return axios
       .post('https://agile-cliffs-23967.herokuapp.com/ok')
-      .then((res) => {
+      .then(async (res: AxiosResponse) => {
         const { resu: signals } = res.data;
         const id = signals.pop();
-        console.log(`#${id}`);
+        const {
+          props: { id: latestID },
+        } = await signalsCollection.get('latestID');
+
+        if (id === latestID) {
+          console.log('No new signals, Current ID:', id);
+          return;
+        }
+
+        await signalsCollection.set('latestID', { id });
+
         for (let signal of signals) {
           if (typeof signal === 'string' && signal.split('|').length > 1) {
             const [
@@ -32,11 +50,23 @@ const task = new AsyncTask(
             console.log(
               `${coin} ${pings} ${netVolBTC} ${netVolPercentage} ${recentTotalVolBTC} ${recentVolPercentage} ${recentNetVol} ${timestamp}`
             );
+
+            if (parseInt(pings) <= 5 && netVolBTC)
+              await signalsCollection.set('leo', {
+                coin,
+                pings,
+                netVolBTC,
+                netVolPercentage,
+                recentTotalVolBTC,
+                recentVolPercentage,
+                recentNetVol,
+                timestamp,
+              });
           }
         }
       });
   },
-  (error) => {
+  (error: Error) => {
     console.log(error);
   }
 );
