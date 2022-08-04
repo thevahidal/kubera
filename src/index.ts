@@ -7,6 +7,8 @@ import {
 } from 'toad-scheduler';
 import CyclicDb from 'cyclic-dynamodb';
 
+import { getTicker, postOrder, startNewTrade } from "./kucoin";
+
 dotenv.config();
 
 const db = CyclicDb(process.env.CYCLIC_DB);
@@ -14,6 +16,7 @@ const db = CyclicDb(process.env.CYCLIC_DB);
 let signalsCollection = db.collection('signals');
 
 const scheduler = new ToadScheduler();
+
 
 const task = new AsyncTask(
   'signals',
@@ -26,6 +29,14 @@ const task = new AsyncTask(
         const {
           props: { id: latestID },
         } = await signalsCollection.get('latestID');
+        
+        // postOrder();
+        // console.log(await getTicker('ETH-USDT'));
+        startNewTrade(
+          "unique-id" + new Date().getTime(),
+          "ETH-USDT",
+        )
+
 
         if (id === latestID) {
           console.log('No new signals, Current ID:', id);
