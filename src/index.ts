@@ -6,6 +6,7 @@ import {
   AsyncTask,
 } from 'toad-scheduler';
 import CyclicDb from 'cyclic-dynamodb';
+import express, { Request, Response } from 'express';
 
 import { getTicker, postOrder, startNewTrade } from "./kucoin";
 
@@ -17,6 +18,19 @@ let signalsCollection = db.collection('signals');
 
 const scheduler = new ToadScheduler();
 
+const app = express();
+
+app.get('/', (req: Request, res: Response) => {
+  res.json({
+    message: 'Mansa is running',
+  });
+});
+
+const port = process.env.PORT || 3000;
+
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
+});
 
 const task = new AsyncTask(
   'signals',
