@@ -128,7 +128,7 @@ export const startNewTrade = async (
     const {
       data: { price, bestBid, bestAsk },
     } = await getTicker(symbol);
-    
+    console.log(price, bestBid, bestAsk);
     // postOrder(clientOid, symbol, side, type, size);
     // clientOid: string,
     // symbol: string,
