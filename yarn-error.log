@@ -28,9 +28,9 @@ Trace:
 
 npm manifest: 
   {
-    "name": "mansa",
+    "name": "kubera",
     "version": "1.0.0",
-    "description": "Mansa reads AgileCliffs signals and trades them on your behalf",
+    "description": "Kubera reads AgileCliffs signals and trades them on your behalf",
     "main": "dist/index.js",
     "scripts": {
       "build": "npx tsc",

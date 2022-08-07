@@ -1,14 +1,10 @@
-import axios, { AxiosError, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import dotenv from 'dotenv';
-import {
-  ToadScheduler,
-  SimpleIntervalJob,
-  AsyncTask,
-} from 'toad-scheduler';
+import { ToadScheduler, SimpleIntervalJob, AsyncTask } from 'toad-scheduler';
 import CyclicDb from 'cyclic-dynamodb';
 import express, { Request, Response } from 'express';
 
-import { getTicker, postOrder, startNewTrade } from "./kucoin";
+import { getTicker, postOrder, initiateTrade } from './kucoin';
 
 dotenv.config();
 
@@ -22,7 +18,7 @@ const app = express();
 
 app.get('/', (req: Request, res: Response) => {
   res.json({
-    message: 'Mansa is running',
+    message: 'Kubera is running',
   });
 });
 
@@ -43,14 +39,8 @@ const task = new AsyncTask(
         const {
           props: { id: latestID },
         } = await signalsCollection.get('latestID');
-        
-        // postOrder();
-        // console.log(await getTicker('ETH-USDT'));
-        startNewTrade(
-          "unique-id" + new Date().getTime(),
-          "ETH-USDT",
-        )
 
+        const date = new Date().toISOString().split('T')[0];
 
         if (id === latestID) {
           console.log('No new signals, Current ID:', id);
@@ -72,21 +62,19 @@ const task = new AsyncTask(
               timestamp,
             ] = signal.split('|');
 
+            const parsedPings = parseInt(pings);
+            const parsedNetVolPercentage = parseFloat(netVolPercentage.split('%')[0]);
+
             console.log(
               `${coin} ${pings} ${netVolBTC} ${netVolPercentage} ${recentTotalVolBTC} ${recentVolPercentage} ${recentNetVol} ${timestamp}`
             );
 
-            if (parseInt(pings) <= 5 && netVolBTC)
-              await signalsCollection.set('leo', {
-                coin,
-                pings,
-                netVolBTC,
-                netVolPercentage,
-                recentTotalVolBTC,
-                recentVolPercentage,
-                recentNetVol,
-                timestamp,
-              });
+            const uuid = `${date}-${id}-${coin}`;
+
+            if (parsedPings <= 10 && parsedNetVolPercentage > 0 && parsedNetVolPercentage <= 10) {
+              console.log("Signal is valid, initiating trade...");
+              initiateTrade(uuid, `${coin}-USDT`);
+            }
           }
         }
       });
@@ -95,6 +83,6 @@ const task = new AsyncTask(
     console.log(error);
   }
 );
-const job = new SimpleIntervalJob({ seconds: 5 }, task);
+const job = new SimpleIntervalJob({ seconds: 45 }, task);
 
 scheduler.addSimpleIntervalJob(job);
