@@ -5,6 +5,9 @@ import CyclicDb from 'cyclic-dynamodb';
 import express, { Request, Response } from 'express';
 
 import { getTicker, postOrder, initiateTrade } from './kucoin';
+import { datafeed } from './websocket';
+
+console.log(datafeed);
 
 dotenv.config();
 
@@ -31,51 +34,64 @@ app.listen(port, () => {
 const task = new AsyncTask(
   'signals',
   () => {
+    // console.log('New ping...');
     return axios
       .post('https://agile-cliffs-23967.herokuapp.com/ok')
       .then(async (res: AxiosResponse) => {
         const { resu: signals } = res.data;
         const id = signals.pop();
-        const {
-          props: { id: latestID },
-        } = await signalsCollection.get('latestID');
 
-        const date = new Date().toISOString().split('T')[0];
+        try {
+          const {
+            props: { id: latestID },
+          } = await signalsCollection.get('latestID');
 
-        if (id === latestID) {
-          console.log('No new signals, Current ID:', id);
-          return;
-        }
+          const date = new Date().toISOString().split('T')[0];
 
-        await signalsCollection.set('latestID', { id });
+          if (id === latestID) {
+            console.log('No new signals, Current ID:', id);
+            return;
+          }
 
-        for (let signal of signals) {
-          if (typeof signal === 'string' && signal.split('|').length > 1) {
-            const [
-              coin,
-              pings,
-              netVolBTC,
-              netVolPercentage,
-              recentTotalVolBTC,
-              recentVolPercentage,
-              recentNetVol,
-              timestamp,
-            ] = signal.split('|');
+          await signalsCollection.set('latestID', { id });
 
-            const parsedPings = parseInt(pings);
-            const parsedNetVolPercentage = parseFloat(netVolPercentage.split('%')[0]);
+          for (let signal of signals) {
+            if (typeof signal === 'string' && signal.split('|').length > 1) {
+              const [
+                coin,
+                pings,
+                netVolBTC,
+                netVolPercentage,
+                recentTotalVolBTC,
+                recentVolPercentage,
+                recentNetVol,
+                timestamp,
+              ] = signal.split('|');
 
-            console.log(
-              `${coin} ${pings} ${netVolBTC} ${netVolPercentage} ${recentTotalVolBTC} ${recentVolPercentage} ${recentNetVol} ${timestamp}`
-            );
+              const parsedPings = parseInt(pings);
+              const parsedNetVolPercentage = parseFloat(
+                netVolPercentage.split('%')[0]
+              );
 
-            const uuid = `${date}-${id}-${coin}`;
+              console.log(
+                `${coin} ${pings} ${netVolBTC} ${netVolPercentage} ${recentTotalVolBTC} ${recentVolPercentage} ${recentNetVol} ${timestamp}`
+              );
 
-            if (parsedPings <= 10 && parsedNetVolPercentage > 0 && parsedNetVolPercentage <= 10) {
-              console.log("Signal is valid, initiating trade...");
-              initiateTrade(uuid, `${coin}-USDT`);
+              const uuid = `${date}-${id}-${coin}`;
+
+              if (
+                parsedPings <= 10 &&
+                parsedNetVolPercentage > 0 &&
+                parsedNetVolPercentage <= 10
+              ) {
+                console.log('Signal is valid, initiating trade...');
+                initiateTrade(uuid, `${coin}-USDT`);
+              }
             }
           }
+        } catch (error) {
+          await signalsCollection.set('latestID', { id });
+          console.log(error)
         }
       });
   },
@@ -83,6 +99,6 @@ const task = new AsyncTask(
     console.log(error);
   }
 );
-const job = new SimpleIntervalJob({ seconds: 45 }, task);
+const job = new SimpleIntervalJob({ seconds: 5 }, task);
 
 scheduler.addSimpleIntervalJob(job);

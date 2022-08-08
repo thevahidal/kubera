@@ -1,11 +1,16 @@
 import * as API from 'kucoin-node-sdk';
 import dotenv from 'dotenv';
+import CyclicDb from 'cyclic-dynamodb';
 
 import config, { kucoin as kucoinConfig } from './config';
 
 dotenv.config();
 
 API.init(kucoinConfig);
+
+const db = CyclicDb(process.env.CYCLIC_DB);
+
+let ordersCollection = db.collection('orders');
 
 export const getTicker = (symbol: string) => {
   try {
@@ -96,9 +101,9 @@ export const takeProfitOrder = (
   clientOid: string,
   symbol: string,
   type = 'market',
-  stopPrice: number,
+  stopPrice: number | string,
   size?: number | string,
-  funds?: number
+  funds?: number | string
 ) => {
   try {
     return postStopOrder(
@@ -172,8 +177,9 @@ export const initiateTrade = async (clientOid: string, symbol: string) => {
         const {
           data: postOrderData,
         } = await postOrder(clientOid, symbol, 'buy', 'market', size, undefined)
-        console.log(postOrderData)
+        console.log({postOrderData}, postOrderData?.orderId)
         orderId = postOrderData.orderId;
+        console.log({orderId});
       } catch (error) {
         console.log('error', error);
         return
@@ -200,12 +206,28 @@ export const initiateTrade = async (clientOid: string, symbol: string) => {
         takeProfitOrderResponse,
         stopLossOrderResponse,
       ] = await Promise.all([
-        postOrder(clientOid, symbol, 'sell', 'limit', realSize, undefined, (realPrice * config.takeProfitPercentage).toPrecision(4)),
-        // takeProfitOrder(clientOid, symbol, 'market', realPrice * config.takeProfitPercentage, realSize, undefined),
-        stopLossOrder(clientOid, symbol, 'market', (realPrice * config.stopLossPercentage).toPrecision(4), realSize, undefined),
+        // postOrder(clientOid, symbol, 'sell', 'limit', realSize, undefined, (realPrice * config.takeProfitPercentage).toPrecision(4)),
+        takeProfitOrder(clientOid + '-tp', symbol, 'market', (realPrice * config.takeProfitPercentage).toPrecision(4), realSize, undefined),
+        stopLossOrder(clientOid + '-sl', symbol, 'market', (realPrice * config.stopLossPercentage).toPrecision(4), realSize, undefined),
       ]);
 
-      console.log({takeProfitOrderResponse, stopLossOrderResponse});
+      console.log({
+        takeProfitOrderResponse,
+        stopLossOrderResponse,
+      });
+
+      await ordersCollection.set(clientOid, { 
+        orderId,
+        takeProfitOrderId: takeProfitOrderResponse.data.orderId,
+        stopLossId: stopLossOrderResponse.data.orderId,
+
+        symbol,
+        size: realSize,
+        funds: realFunds,
+        price: realPrice,
+      });
+
+      console.log('All orders successfully placed.')
 
     } catch(error) {
       console.log('error', error);
