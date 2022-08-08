@@ -97,6 +97,6 @@ const task = new AsyncTask(
     console.log(error);
   }
 );
-const job = new SimpleIntervalJob({ seconds: 5 }, task);
+const job = new SimpleIntervalJob({ seconds: 45 }, task);
 
 scheduler.addSimpleIntervalJob(job);
