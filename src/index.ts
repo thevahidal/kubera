@@ -7,8 +7,6 @@ import express, { Request, Response } from 'express';
 import { getTicker, postOrder, initiateTrade } from './kucoin';
 import { datafeed } from './websocket';
 
-console.log(datafeed);
-
 dotenv.config();
 
 const db = CyclicDb(process.env.CYCLIC_DB);
@@ -34,7 +32,7 @@ app.listen(port, () => {
 const task = new AsyncTask(
   'signals',
   () => {
-    // console.log('New ping...');
+    console.log('Fetching newest signals...');
     return axios
       .post('https://agile-cliffs-23967.herokuapp.com/ok')
       .then(async (res: AxiosResponse) => {
